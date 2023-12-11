@@ -5,57 +5,68 @@ import sys
 pygame.init()
 
 WIDTH, HEIGHT = 800, 600
-win = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Hangman")
-
 WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-RED = (255, 0, 0)
+GREEN = (0, 255, 0)
+FPS = 60
 
-font = pygame.font.SysFont(None, 55)
+hangman_images = [pygame.image.load(f'images/{i}.png') for i in range(1, 8)]
 
-word_list = ["hangman"]
-selected_word = random.choice(word_list)
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Hangman | A group 6 original")
+clock = pygame.time.Clock()
+
+word_list = ["qwertyuiop"]
+word = random.choice(word_list).upper()
 guessed_letters = set()
+wrong_attempts = 0
 
-images = [pygame.image.load(f"images/{i}.png") for i in range(7)]
-current_image = 0
+font = pygame.font.Font(None, 36)
+
+def display_word():
+    displayed_word = ""
+    for letter in word:
+        displayed_word += letter + " " if letter in guessed_letters else "_ "
+    return displayed_word
+
+def game_over(message):
+    game_over_text = font.render(message, True, WHITE)
+    screen.blit(game_over_text, (WIDTH // 2 - 200, HEIGHT // 2 - 50))
+    pygame.display.flip()
+    pygame.time.delay(2000)
+    pygame.quit()
+    sys.exit()
+
+def draw_hangman():
+    current_image_url = f'images/{wrong_attempts + 1}.png' if wrong_attempts < len(hangman_images) - 1 else 'images/7.png'
+    scaled_image = pygame.transform.scale(hangman_images[wrong_attempts], (WIDTH, HEIGHT))
+    screen.blit(scaled_image, (0, 0))
 
 while True:
+    screen.fill(WHITE)
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
 
         if event.type == pygame.KEYDOWN:
-            if event.key in range(97, 123):
-                letter = chr(event.key)
-                guessed_letters.add(letter)
+            if event.unicode.isalpha():
+                letter = event.unicode.upper()
+                if letter not in guessed_letters:
+                    guessed_letters.add(letter)
+                    if letter not in word:
+                        wrong_attempts += 1
 
-    win.fill(WHITE)
-    win.blit(images[current_image], (50, 50))
+    draw_hangman()
 
-    display_word = ""
-    for char in selected_word:
-        if char in guessed_letters:
-            display_word += char + " "
-        else:
-            display_word += "_ "
+    word_text = font.render(display_word(), True, GREEN)
+    screen.blit(word_text, (WIDTH // 2 - 100, HEIGHT - 100))
 
-    text = font.render(display_word, True, BLACK)
-    win.blit(text, (250, 400))
+    if set(word) <= guessed_letters:
+        game_over("You won!")
 
-    if all(letter in guessed_letters for letter in set(selected_word)):
-        font_win = pygame.font.SysFont(None, 70)
-        text_win = font_win.render("You won", True, BLACK)
-        win.blit(text_win, (250, 500))
-    elif current_image == 6:
-        font_lose = pygame.font.SysFont(None, 70)
-        text_lose = font_lose.render("You lost", True, RED)
-        win.blit(text_lose, (250, 500))
-    else:
-        if any(letter not in selected_word for letter in guessed_letters):
-            current_image += 1
+    if wrong_attempts >= 6:
+        game_over("Game Over! The word was: " + word)
 
     pygame.display.flip()
-    pygame.time.Clock().tick(30)
+    clock.tick(FPS)
